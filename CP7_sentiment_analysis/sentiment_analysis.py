@@ -90,7 +90,7 @@ class SentimentAnalysis:
 
     @__applymap
     def __stem(text, stemmer):
-        res = " ".join(list(map(stemmer, text)))
+        res = " ".join(list(map(stemmer.stem, text)))
         return res
 
     def _preprocess(self, text):
@@ -109,7 +109,7 @@ class SentimentAnalysis:
 
         seq = self.__remove_stop_words(seq, self.stopwords)
         stemmer = PorterStemmer()
-        text = self.__stem(seq, stemmer.stem)  # here text is a string
+        text = self.__stem(seq, stemmer)  # here text is a string
         return text
 
     def _vectorize(self, text):
