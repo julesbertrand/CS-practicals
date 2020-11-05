@@ -64,7 +64,6 @@ class Game(Board):
             self.n_grid, board_type="mines"
         )  # mine board init with 0
         self.__pos_mines()
-        self.start_time = time.time()
 
     def __pos_mines(self):
         """
@@ -95,6 +94,7 @@ class Game(Board):
                 self.n_mines, self.n_grid, self.n_grid
             )
         )
+        self.start_time = time.time()
         while True:
             print(self._display_map)
             min, sec = divmod(int(time.time() - self.start_time), 60)
@@ -106,7 +106,6 @@ class Game(Board):
                     self.remaining_mines - self.flagged_mines,
                 )
             )
-            print("counter:", self.__counter)
             move = self.__human_input()
             exploded = self.__make_move(move)
             if exploded:
@@ -158,23 +157,24 @@ class Game(Board):
         Else makes the move and update the display map
         """
         r, c, flag = move
-        if self._display_map.curr[r][c] != " ":
-            if self._display_map.curr[r][c] == "f" and flag:
+        if self._display_map.curr[r][c] != " ":  # if displayed (not hidden)
+            if self._display_map.curr[r][c] == "f" and flag:  # unflag
                 self.flagged_mines -= 1
                 self._display_map.curr[r][c] = " "
                 self.__counter += 1
                 return False
-            print("Already visited: try another input!")
+            print("Already visited: try another input!")  # already visited: new attempt
             return False
-        if flag:
+        if flag:  # flag
             self.flagged_mines += 1
             self._display_map.curr[r][c] = "f"
             self.__counter -= 1
             return False
-        if self._mine_map.curr[r][c] == -1:
+        if self._mine_map.curr[r][c] == -1:  # explode
             return True
-        self.__BFS((r, c))
-        if self._display_map.curr[r][c] != self._mine_map.curr[r][c]:
+        self.__BFS((r, c))  # uncover the map around selected move
+        # make sure the chosen move is displayed (BFS issue sometimes)
+        if self._display_map.curr[r][c] != self._mine_map.curr[r][c]:  
             self._display_map.curr[r][c] = self._mine_map.curr[r][c]
             self.__counter -= 1
         return False
@@ -202,11 +202,11 @@ class Game(Board):
                 if neighbor == 0:
                     Q.append((i, j))
                 # display
-                if neighbor == -1:
+                if neighbor == -1:  # display mines
                     self._display_map.curr[i][j] = "x"
                     self.remaining_mines -= 1
                     self.__counter -= 1
-                else:
+                else:  # display other boxes
                     self._display_map.curr[i][j] = self._mine_map.curr[i][j]
                     self.__counter -= 1
 
@@ -226,5 +226,5 @@ class Game(Board):
 
 
 if __name__ == "__main__":
-    g = Game(10, 9)  # n_mines=15, n_grid=12
+    g = Game(10, 9)  # n_mines=10, n_grid=9
     g.play()
