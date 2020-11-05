@@ -13,7 +13,6 @@ from nltk.stem.porter import PorterStemmer
 import tensorflow as tf
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from sklearn.feature_extraction.text import CountVectorizer
 
 
 class SentimentAnalysis:
@@ -51,6 +50,7 @@ class SentimentAnalysis:
             np.random.seed(seed=seed)
 
     def train_test_split(self, test_size=0.1, seed=None):
+        """ encode labels and use train_test_split from sklearn """
         self.le = LabelEncoder()
         X = self.data[self.TEXT_COL]
         y = self.le.fit_transform(self.data[self.LABEL_COL])
@@ -62,8 +62,8 @@ class SentimentAnalysis:
     # decorator
     def __applymap(func):
         def wrapper(self, text, *args, **kwargs):
-            func_name = func.__name__.replace("__", "").replace("_", " ")
-            print(" Started {} ".format(func_name).center(100, "="))
+            # func_name = func.__name__.replace("__", "").replace("_", " ")
+            # print(" Started {} ".format(func_name).center(100, "="))
             return text.apply(lambda x: func(x, *args, **kwargs))
 
         return wrapper
@@ -113,6 +113,11 @@ class SentimentAnalysis:
         return text
 
     def _vectorize(self, text):
+        """
+        Input: list of strings like
+        Ouput: list of vectors (numpy array)
+        use self.vectorizer instance of keras Vectorizer to vectorize sentences (either to seq or to matrix)
+        """
         if self.mode == "pad":
             # approach 1: vectors are sentences padded at self.max_len
             # at the end, data of size n * max_len with oov_token for words not in vocab, sequential
@@ -139,14 +144,21 @@ class SentimentAnalysis:
         self.test_text = self._preprocess(test_text)
 
     def build_model(self, dense_layers=[], mode=None, embedding_dim=10):
+        """
+        Build the vectorizer
+        Build model: if mode is 'pad', then use a EMbedding layer. else use Input
+        flatten and add dense layers, compile, summary
+        """
         if mode:
             self.mode = mode
+
         self.vectorizer = Tokenizer(
             num_words=self.vocab_size, filters="", lower=False, oov_token="<OOV>"
         )
+
         if self.mode == "pad":
-            #             inputs = tf.keras.Input(shape=(self.max_len,), name='input')
-            inputs = tf.keras.layers.Embedding(
+            inputs = tf.keras.Input(shape=(self.max_len,), name="input")
+            x = tf.keras.layers.Embedding(
                 input_dim=self.vocab_size,
                 output_dim=embedding_dim,
                 input_length=self.max_len,
@@ -154,7 +166,7 @@ class SentimentAnalysis:
             x = tf.keras.layers.Flatten(name="flatten")(x)
         else:
             inputs = tf.keras.Input(shape=(self.vocab_size,), name="input")
-            x = tf.keras.layers.Flatten(name="flatten")(inputs)
+            x = inputs
 
         for i, dim in enumerate(dense_layers):
             x = tf.keras.layers.Dense(
@@ -169,6 +181,7 @@ class SentimentAnalysis:
         self.model.summary()
 
     def fit_model(self, epochs=10):
+        """ fit vectorizer, vectorize data, fit neural network """
         self.vectorizer.fit_on_texts(self.train_text)
         self.X_train = self._vectorize(self.train_text)
         self.X_test = self._vectorize(self.test_text)
@@ -182,7 +195,7 @@ class SentimentAnalysis:
     def predict(self, X):
         X = self._preprocess(X)
         X = self._vectorize(X)
-        y_pred = model.predict(X_pad)
+        y_pred = self.model.predict(X)
         return y_pred
 
 
@@ -210,7 +223,7 @@ if __name__ == "__main__":
 
     # model related
     EMBEDDING_DIM = 10  # 'pad' only
-    DENSE_LAYERS = [6] if MODE is "pad" else [50, 6]
+    DENSE_LAYERS = [6] if MODE == "pad" else [50, 6]
     EPOCHS = 10
 
     s.build_model(mode=MODE, embedding_dim=EMBEDDING_DIM, dense_layers=DENSE_LAYERS)

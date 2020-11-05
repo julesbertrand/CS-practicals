@@ -17,6 +17,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+
 class Data:
     def __init__(self, path, drop=None):
         self.data = pd.read_csv(path)
