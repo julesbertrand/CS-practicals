@@ -241,7 +241,9 @@ class ToxicityClf:
         fpr, tpr, _ = roc_curve(y_true, y_proba[:, 1])
         roc_auc = auc(fpr, tpr)
 
-        plt.plot(fpr, tpr, c="olive", label="ROC curve (area = {:0.2f})".format(roc_auc))
+        plt.plot(
+            fpr, tpr, c="olive", label="ROC curve (area = {:0.2f})".format(roc_auc)
+        )
         plt.plot([0, 1], [0, 1], color="b", linestyle="--")
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.0])
