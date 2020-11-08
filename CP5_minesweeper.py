@@ -174,7 +174,7 @@ class Game(Board):
             return True
         self.__BFS((r, c))  # uncover the map around selected move
         # make sure the chosen move is displayed (BFS issue sometimes)
-        if self._display_map.curr[r][c] != self._mine_map.curr[r][c]:  
+        if self._display_map.curr[r][c] != self._mine_map.curr[r][c]:
             self._display_map.curr[r][c] = self._mine_map.curr[r][c]
             self.__counter -= 1
         return False

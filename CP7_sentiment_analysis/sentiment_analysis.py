@@ -49,21 +49,11 @@ class SentimentAnalysis:
         if seed:
             np.random.seed(seed=seed)
 
-    def train_test_split(self, test_size=0.1, seed=None):
-        """ encode labels and use train_test_split from sklearn """
-        self.le = LabelEncoder()
-        X = self.data[self.TEXT_COL]
-        y = self.le.fit_transform(self.data[self.LABEL_COL])
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=seed
-        )
-        return X_train, X_test, y_train, y_test
-
     # decorator
     def __applymap(func):
         def wrapper(self, text, *args, **kwargs):
-            # func_name = func.__name__.replace("__", "").replace("_", " ")
-            # print(" Started {} ".format(func_name).center(100, "="))
+            func_name = func.__name__.replace("__", "").replace("_", " ")
+            print(" Started {} ".format(func_name).center(100, "="))
             return text.apply(lambda x: func(x, *args, **kwargs))
 
         return wrapper
@@ -112,6 +102,16 @@ class SentimentAnalysis:
         text = self.__stem(seq, stemmer)  # here text is a string
         return text
 
+    def train_test_split(self, test_size=0.1, seed=None):
+        """ encode labels and use train_test_split from sklearn """
+        self.le = LabelEncoder()
+        X = self.data[self.TEXT_COL]
+        y = self.le.fit_transform(self.data[self.LABEL_COL])
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=seed
+        )
+        return X_train, X_test, y_train, y_test
+
     def _vectorize(self, text):
         """
         Input: list of strings like
@@ -137,11 +137,16 @@ class SentimentAnalysis:
 
     def preprocess(self):
         """ train test split and apply the self._proprocess function """
-        training_text, test_text, self.y_train, self.y_test = self.train_test_split(
+        self.data[self.TEXT_COL] = self._preprocess(self.data[self.TEXT_COL])
+        train_text, test_text, self.y_train, self.y_test = self.train_test_split(
             test_size=self.test_size, seed=self.seed
         )
-        self.train_text = self._preprocess(training_text)
-        self.test_text = self._preprocess(test_text)
+        self.vectorizer = Tokenizer(
+            num_words=self.vocab_size, filters="", lower=False, oov_token="<OOV>"
+        )
+        self.vectorizer.fit_on_texts(train_text)
+        self.X_train = self._vectorize(train_text)
+        self.X_test = self._vectorize(test_text)
 
     def build_model(self, dense_layers=[], mode=None, embedding_dim=10):
         """
@@ -151,10 +156,6 @@ class SentimentAnalysis:
         """
         if mode:
             self.mode = mode
-
-        self.vectorizer = Tokenizer(
-            num_words=self.vocab_size, filters="", lower=False, oov_token="<OOV>"
-        )
 
         if self.mode == "pad":
             inputs = tf.keras.Input(shape=(self.max_len,), name="input")
@@ -182,9 +183,6 @@ class SentimentAnalysis:
 
     def fit_model(self, epochs=10):
         """ fit vectorizer, vectorize data, fit neural network """
-        self.vectorizer.fit_on_texts(self.train_text)
-        self.X_train = self._vectorize(self.train_text)
-        self.X_test = self._vectorize(self.test_text)
         self.model.fit(
             self.X_train,
             self.y_train,
